@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Debug Chart</title>
+</head>
+<body>
+    <h1>📊 Model Debug: Actual vs Predicted</h1>
+    <img src="data:image/png;base64,{{ chart }}" />
+    <h3 class="mt-4">📐 Model Evaluation</h3>
+<ul>
+  <li><strong>MAE:</strong> {{ mae }}</li>
+  <li><strong>RMSE:</strong> {{ rmse }}</li>
+</ul>
+
+    <a href="{% url 'home' %}">← Back</a>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Predict Stock Price</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #loading-spinner {
+      transition: opacity 0.5s ease;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container mt-4">
+    <h1 class="mb-4">🔮 Predict Next Price</h1>
+
+    <div id="form-container">
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Stock Ticker -->
+        <div class="mb-3">
+          <label for="ticker" class="form-label">Stock Ticker</label>
+          <input type="text" name="ticker" class="form-control" placeholder="e.g. RELIANCE.NS" value="{{ ticker_input }}">
+        </div>
+
+        <!-- Forecast Days -->
+        <div class="mb-3">
+          <label for="test_days" class="form-label">🔁 Days to Forecast</label>
+          <select name="test_days" class="form-select">
+            {% for day in forecast_options %}
+              <option value="{{ day }}" {% if test_days|stringformat:"s" == day %}selected{% endif %}>{{ day }} days</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="mb-3">
+          <label for="model_name" class="form-label">🧠 ML Model</label>
+          <select name="model_name" class="form-select">
+            <option value="linear" {% if model_name == 'linear' %}selected{% endif %}>Linear Regression</option>
+            <option value="decision_tree" {% if model_name == 'decision_tree' %}selected{% endif %}>Decision Tree</option>
+            <option value="random_forest" {% if model_name == 'random_forest' %}selected{% endif %}>Random Forest</option>
+          </select>
+        </div>
+
+        <!-- ✅ Auto-Tune Grid Search Option -->
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="auto_tune" id="auto_tune" {% if auto_tune %}checked{% endif %}>
+          <label class="form-check-label" for="auto_tune">⚙️ Auto-tune Random Forest (Grid Search)</label>
+        </div>
+
+        <!-- Feature Selector -->
+        <div class="mb-3">
+          <label class="form-label">📊 Features to Include</label><br>
+          {% for feature in feature_list %}
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="features" value="{{ feature }}" id="{{ feature }}" {% if feature in selected_features %}checked{% endif %}>
+              <label class="form-check-label" for="{{ feature }}">{{ feature }}</label>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- 🔄 Spinner (Hidden initially) -->
+        <div id="loading-spinner" class="text-center my-3 d-none" style="opacity: 0;">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <div class="mt-2">Predicting... please wait</div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary">Predict</button>
+      </form>
+    </div>
+
+    <!-- ✅ Result Block -->
+    {% if predicted_price %}
+      {% if predicted_price|stringformat:"s"|slice:":5" == "Error" %}
+        <div class="alert alert-danger mt-3">❌ {{ predicted_price }}</div>
+      {% else %}
+        <div class="alert alert-info mt-3">✅ <strong>Predicted Next Price:</strong> ₹<strong>{{ predicted_price }}</strong></div>
+        {% if mae and rmse %}
+          <div class="alert alert-secondary mt-3">
+            📏 <strong>MAE:</strong> {{ mae|floatformat:2 }} |
+            📉 <strong>RMSE:</strong> {{ rmse|floatformat:2 }}
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    <!-- ✅ SHAP Feature Contributions -->
+    {% if feature_contributions %}
+      <h4 class="mt-4">📊 Feature Contributions (SHAP)</h4>
+      <ul class="list-group">
+        {% for feature, value in feature_contributions.items %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ feature }}
+            <span class="badge {% if value > 0 %}bg-success{% else %}bg-danger{% endif %}">
+              {{ value|floatformat:2 }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <!-- ✅ Model Comparison Table -->
+    {% if comparison_results %}
+      <h4 class="mt-5">📊 Model Comparison</h4>
+      <table class="table table-bordered table-striped">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Model</th>
+            <th>MAE</th>
+            <th>RMSE</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for result in comparison_results %}
+              {% if forloop.counter0 == 0 %}
+                <tr class="table-success fw-bold">
+            {% else %}
+              <tr>
+            {% endif %}
+              <td>{{ forloop.counter }}</td>
+              <td>{{ result.model }}</td>
+              <td>{{ result.mae }}</td>
+              <td>{{ result.rmse }}</td>
+            </tr>
+           {% endfor %}
+          
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- ✅ Grid Search Results -->
+    {% if grid_results %}
+      <h4 class="mt-5">🎛️ Random Forest Tuning (Grid Search)</h4>
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th># Trees</th>
+            <th>MAE</th>
+            <th>RMSE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in grid_results %}
+            <tr>
+              <td>{{ result.n_estimators }}</td>
+              <td>{{ result.mae }}</td>
+              <td>{{ result.rmse }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if best_model_chart %}
+      <h4 class="mt-5">📈 Best Model Forecast: <strong>{{ best_model_name }}</strong></h4>
+      <img src="data:image/png;base64,{{ best_model_chart }}" class="img-fluid mt-3" alt="Best Forecast Chart">
+    {% endif %}
+
+
+    <a href="{% url 'home' %}" class="btn btn-link mt-4">← Back to Watchlist</a>
+  </div>
+
+  <a href="{% url 'history' %}" class="btn btn-outline-secondary mt-3">📘 View Prediction History</a>
+
+
+  <!-- Spinner Script -->
+  <script>
+    const form = document.querySelector('form');
+    const spinner = document.getElementById('loading-spinner');
+  
+    form.addEventListener('submit', function () {
+      spinner.classList.remove('d-none');        // unhide
+      setTimeout(() => spinner.style.opacity = 1, 10);  // fade in after small delay
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+  
+</body>
+</html>

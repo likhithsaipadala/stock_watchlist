@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>📜 Your Prediction History</h2>
+
+  {% if predictions %}
+    <table class="table table-bordered table-striped mt-3">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Model Used</th>
+          <th>Forecast Days</th>
+          <th>Selected Features</th>
+          <th>Predicted Price</th>
+          <th>MAE</th>
+          <th>RMSE</th>
+          <th>Date & Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in predictions %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ item.ticker }}</td>
+          <td>{{ item.model_used }}</td>
+          <td>{{ item.forecast_days }}</td>
+          <td>{{ item.features_used }}</td>
+          <td>₹{{ item.predicted_price }}</td>
+          <td>{{ item.mae }}</td>
+          <td>{{ item.rmse }}</td>
+          <td>{{ item.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- 💥 Move the button inside container and add spacing -->
+    <form method="post" action="{% url 'delete_history' %}" class="mt-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑️ Delete All History</button>
+    </form>
+  {% else %}
+    <p class="text-muted mt-3">No predictions found.</p>
+  {% endif %}
+</div>
+{% endblock %}
