@@ -2,7 +2,9 @@
   - type: web
     name: stock-watchlist
     env: python
-    buildCommand: "./build.sh"
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py migrate
     startCommand: "gunicorn stock_watchlist.wsgi:application"
     envVars:
       - key: DEBUG
