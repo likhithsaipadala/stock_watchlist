@@ -5,11 +5,11 @@ class Stock(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE) 
     ticker = models.CharField(max_length=20)
     model_used = models.CharField(max_length=50)
-    forecast_days = models.IntegerField()
+    forecast_days = models.IntegerField(default=7)
     features_used = models.TextField()
-    predicted_price = models.FloatField()
-    mae = models.FloatField()
-    rmse = models.FloatField()
+    predicted_price = models.FloatField(null=True, blank=True, default=0.0)
+    mae = models.FloatField(null=True, blank=True, default=0.0)
+    rmse = models.FloatField(null=True, blank=True, default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

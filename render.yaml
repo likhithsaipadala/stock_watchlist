@@ -1,16 +1,15 @@
- services:
+services:
   - type: web
     name: stock-watchlist
     env: python
-    buildCommand: |
-      pip install -r requirements.txt
-      python manage.py migrate
-    startCommand: "gunicorn stock_watchlist.wsgi:application"
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn stocksite.wsgi:application"
     envVars:
       - key: DEBUG
         value: "False"
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: "stock-watchlist.onrender.com"
+        value: "stock-watchlist-1.onrender.com"
+
 
